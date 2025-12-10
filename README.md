@@ -280,19 +280,19 @@ calc = CalculationCreate(a=10.0, b=0.0, type=CalculationType.DIVIDE)
 
 The Docker image is automatically built and pushed to Docker Hub via GitHub Actions.
 
-**Docker Hub Repository**: Replace with your Docker Hub repository link
+**Docker Hub Repository**: [jyothsnaravi/secure-user-api](https://hub.docker.com/repository/docker/jyothsnaravi/secure-user-api/general)
 
 ### Pull and Run the Image
 
 ```bash
 # Pull the latest image
-docker pull [your-dockerhub-username]/secure-user-api:latest
+docker pull jyothsnaravi/secure-user-api:latest
 
 # Run the container
 docker run -d \
   -p 8000:8000 \
   -e DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/userdb \
-  [your-dockerhub-username]/secure-user-api:latest
+  jyothsnaravi/secure-user-api:latest
 ```
 
 ## 🔄 CI/CD Pipeline
@@ -540,7 +540,4 @@ Jyothsna Reddy
 - Comprehensive testing (unit, integration, and E2E)
 - CI/CD pipeline with automated testing and Docker deployment
 - Modern, responsive front-end interface
-
----
-
-**Note**: Remember to update the Docker Hub repository URL and add your Docker Hub credentials to GitHub secrets before pushing to the main branch.
+- Docker Hub integration: [jyothsnaravi/secure-user-api](https://hub.docker.com/repository/docker/jyothsnaravi/secure-user-api/general)
