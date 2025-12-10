@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Secure User API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="d-flex justify-content-end mb-3 gap-2">
+            <a class="btn btn-outline-light" href="/static/calculations.html">Back to Calculations</a>
+            <button id="logoutBtn" class="btn btn-light">Logout</button>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">Profile</div>
+                    <div class="card-body">
+                        <div id="profileAlert"></div>
+                        <form id="profileForm">
+                            <div class="mb-3">
+                                <label class="form-label" for="username">Username</label>
+                                <input class="form-control" id="username" required minlength="3" maxlength="50">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="email">Email</label>
+                                <input class="form-control" type="email" id="email" required>
+                            </div>
+                            <button class="btn btn-primary w-100" type="submit">Update Profile</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header bg-dark text-white">Change Password</div>
+                    <div class="card-body">
+                        <div id="passwordAlert"></div>
+                        <form id="passwordForm">
+                            <div class="mb-3">
+                                <label class="form-label" for="currentPassword">Current Password</label>
+                                <input class="form-control" type="password" id="currentPassword" required minlength="8">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="newPassword">New Password</label>
+                                <input class="form-control" type="password" id="newPassword" required minlength="8">
+                                <div class="form-text text-muted">Minimum 8 characters.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="confirmNewPassword">Confirm New Password</label>
+                                <input class="form-control" type="password" id="confirmNewPassword" required minlength="8">
+                            </div>
+                            <button class="btn btn-dark w-100" type="submit">Change Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '';
+        let authToken = localStorage.getItem('token');
+
+        if (!authToken) {
+            window.location.href = '/static/login.html';
+        }
+
+        const profileAlert = document.getElementById('profileAlert');
+        const passwordAlert = document.getElementById('passwordAlert');
+
+        function showAlert(container, message, type = 'success') {
+            container.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`;
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            window.location.href = '/static/login.html';
+        });
+
+        async function loadProfile() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = '/static/login.html';
+                    return;
+                }
+                const data = await response.json();
+                document.getElementById('username').value = data.username;
+                document.getElementById('email').value = data.email;
+            } catch (err) {
+                showAlert(profileAlert, 'Failed to load profile.', 'danger');
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            if (!username || !email) {
+                showAlert(profileAlert, 'Username and email are required.', 'danger');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ username, email })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    showAlert(profileAlert, data.detail || 'Update failed.', 'danger');
+                    return;
+                }
+                if (data.access_token) {
+                    authToken = data.access_token;
+                    localStorage.setItem('token', data.access_token);
+                }
+                if (data.user && data.user.username) {
+                    localStorage.setItem('username', data.user.username);
+                }
+                showAlert(profileAlert, 'Profile updated successfully.', 'success');
+            } catch (err) {
+                showAlert(profileAlert, 'Update failed.', 'danger');
+            }
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmNewPassword) {
+                showAlert(passwordAlert, 'New passwords do not match.', 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    showAlert(passwordAlert, data.detail || 'Password change failed.', 'danger');
+                    return;
+                }
+                showAlert(passwordAlert, 'Password updated successfully.', 'success');
+                document.getElementById('passwordForm').reset();
+            } catch (err) {
+                showAlert(passwordAlert, 'Password change failed.', 'danger');
+            }
+        });
+
+        loadProfile();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
